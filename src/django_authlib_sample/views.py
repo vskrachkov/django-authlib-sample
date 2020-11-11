@@ -2,6 +2,7 @@ import json
 
 from authlib.integrations.base_client import BaseOAuth
 from authlib.integrations.django_client import DjangoRemoteApp, DjangoIntegration
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.template import Template, Context
@@ -37,8 +38,8 @@ oauth = OAuth()
 oauth.register(
     name="google",
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_id="218094279447-h2inhtae6n8mq1bjook9lvjn9ec1j682.apps.googleusercontent.com",
-    client_secret="HGqCnbF0TZtx3qy57Vm24bvu",
+    client_id=settings.OAUTH2_GOOGLE_CLIENT_ID,
+    client_secret=settings.OAUTH2_GOOGLE_CLIENT_SECRET,
     request_token_url=None,
     request_token_params=None,
     access_token_url=None,

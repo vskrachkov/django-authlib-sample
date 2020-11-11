@@ -7,6 +7,9 @@ env.read_env()  # read .env file, if it exists
 
 SECRET_KEY = env.str("SECRET_KEY")
 
+OAUTH2_GOOGLE_CLIENT_ID = env.str("OAUTH2_GOOGLE_CLIENT_ID")
+OAUTH2_GOOGLE_CLIENT_SECRET = env.str("OAUTH2_GOOGLE_CLIENT_SECRET")
+
 DEBUG = True
 
 ALLOWED_HOSTS = []
