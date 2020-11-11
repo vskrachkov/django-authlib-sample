@@ -7,8 +7,18 @@ env.read_env()  # read .env file, if it exists
 
 SECRET_KEY = env.str("SECRET_KEY")
 
-OAUTH2_GOOGLE_CLIENT_ID = env.str("OAUTH2_GOOGLE_CLIENT_ID")
-OAUTH2_GOOGLE_CLIENT_SECRET = env.str("OAUTH2_GOOGLE_CLIENT_SECRET")
+OAUTH2 = {
+    "GOOGLE": {
+        "CLIENT_ID": env.str("OAUTH2_GOOGLE_CLIENT_ID"),
+        "CLIENT_SECRET": env.str("OAUTH2_GOOGLE_CLIENT_SECRET"),
+        "SCOPE": "email",
+    },
+    "TWITCH": {
+        "CLIENT_ID": env.str("OAUTH2_TWITCH_CLIENT_ID"),
+        "CLIENT_SECRET": env.str("OAUTH2_TWITCH_CLIENT_SECRET"),
+        "SCOPE": "openid",
+    },
+}
 
 DEBUG = True
 
