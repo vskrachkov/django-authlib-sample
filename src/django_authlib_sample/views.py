@@ -12,33 +12,17 @@ USERS: list = []
 SESSION_DATA: dict = {}
 
 
-class OAuth2Adapter:
-    @staticmethod
-    def create_client() -> DjangoRemoteApp:
-        raise NotImplementedError()
-
-    def __init__(self, oauth_client: BaseOAuth) -> None:
-        raise NotImplementedError()
-
-    def get_client_id(self) -> str:
-        raise NotImplementedError()
-
-    def get_client_secret(self) -> str:
-        raise NotImplementedError()
-
-    def authorize_redirect(
-        self, request: HttpRequest, redirect_uri: str, **kwargs
+class AuthAdapter:
+    def redirect_to_provider_auth_page(
+        self, request: HttpRequest, redirect_uri: str
     ) -> HttpResponse:
         raise NotImplementedError()
 
-    def authorize_access_token(self, request: HttpRequest, **kwargs) -> dict:
-        raise NotImplementedError()
-
-    def parse_id_token(self, request: HttpRequest, token: dict) -> dict:
+    def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
         raise NotImplementedError()
 
 
-class GoogleOAuth2Adapter(OAuth2Adapter):
+class GoogleOAuth2Adapter(AuthAdapter):
     @staticmethod
     def create_client() -> DjangoRemoteApp:
         oauth.register(
@@ -53,25 +37,18 @@ class GoogleOAuth2Adapter(OAuth2Adapter):
     def __init__(self, oauth_client: BaseOAuth) -> None:
         self.client = self.create_client()
 
-    def get_client_id(self) -> str:
-        return self.client.client_id
-
-    def get_client_secret(self) -> str:
-        return self.client.client_secret
-
-    def authorize_redirect(
-        self, request: HttpRequest, redirect_uri: str, **kwargs
+    def redirect_to_provider_auth_page(
+        self, request: HttpRequest, redirect_uri: str
     ) -> HttpResponse:
-        return self.client.authorize_redirect(request, redirect_uri,)
+        return self.client.authorize_redirect(request, redirect_uri)
 
-    def authorize_access_token(self, request: HttpRequest, **kwargs) -> dict:
-        return self.client.authorize_access_token(request)
+    def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
+        token = self.client.authorize_access_token(request)
+        user = self.client.parse_id_token(request, token)
+        return {"token": token, "user": user}
 
-    def parse_id_token(self, request: HttpRequest, token: dict) -> dict:
-        return self.client.parse_id_token(request, token)
 
-
-class TwitchOAuth2Adapter(OAuth2Adapter):
+class TwitchOAuth2Adapter(AuthAdapter):
     @staticmethod
     def create_client() -> DjangoRemoteApp:
         oauth.register(
@@ -86,14 +63,8 @@ class TwitchOAuth2Adapter(OAuth2Adapter):
     def __init__(self, oauth_client: BaseOAuth) -> None:
         self.client = self.create_client()
 
-    def get_client_id(self) -> str:
-        return self.client.client_id
-
-    def get_client_secret(self) -> str:
-        return self.client.client_secret
-
-    def authorize_redirect(
-        self, request: HttpRequest, redirect_uri: str, **kwargs
+    def redirect_to_provider_auth_page(
+        self, request: HttpRequest, redirect_uri: str
     ) -> HttpResponse:
         return self.client.authorize_redirect(
             request,
@@ -105,16 +76,16 @@ class TwitchOAuth2Adapter(OAuth2Adapter):
             ),
         )
 
-    def authorize_access_token(self, request: HttpRequest, **kwargs) -> dict:
-        return self.client.authorize_access_token(
+    def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
+        token = self.client.authorize_access_token(
             request,
             **dict(
-                client_id=self.get_client_id(), client_secret=self.get_client_secret(),
+                client_id=self.client.client_id,
+                client_secret=self.client.client_secret,
             ),
         )
-
-    def parse_id_token(self, request: HttpRequest, token: dict) -> dict:
-        return self.client.parse_id_token(request, token)
+        user = self.client.parse_id_token(request, token)
+        return {"token": token, "user": user}
 
 
 class MyIntegration(DjangoIntegration):
@@ -140,9 +111,9 @@ class OAuth(BaseOAuth):
 
 
 oauth = OAuth()
-google_client: OAuth2Adapter = GoogleOAuth2Adapter(oauth)
-twitch_client: OAuth2Adapter = TwitchOAuth2Adapter(oauth)
-client = google_client
+google_client: AuthAdapter = GoogleOAuth2Adapter(oauth)
+twitch_client: AuthAdapter = TwitchOAuth2Adapter(oauth)
+client = twitch_client
 
 
 def home(request) -> HttpResponse:
@@ -164,26 +135,14 @@ def home(request) -> HttpResponse:
     )
 
 
-def login(request):
+def login(request: HttpRequest) -> HttpResponse:
     redirect_uri = request.build_absolute_uri(reverse("auth"))
-    return client.authorize_redirect(
-        request,
-        redirect_uri,
-        **dict(
-            claims=json.dumps({"id_token": {"email": None, "email_verified": None}}),
-        ),
-    )
+    return client.redirect_to_provider_auth_page(request, redirect_uri)
 
 
-def auth(request):
-    token = client.authorize_access_token(
-        request,
-        **dict(
-            client_id=client.get_client_id(), client_secret=client.get_client_secret()
-        ),
-    )
-    user = client.parse_id_token(request, token)
-    USERS.append({"token": token, "user": user})
+def auth(request: HttpRequest) -> HttpResponse:
+    credentials = client.handle_redirect_from_provider(request)
+    USERS.append(credentials)
     return redirect("/")
 
 
