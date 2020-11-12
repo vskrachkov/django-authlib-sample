@@ -1,5 +1,8 @@
 import json
+from typing import Final
 
+import http
+import requests
 from authlib.integrations.base_client import BaseOAuth
 from authlib.integrations.django_client import DjangoRemoteApp, DjangoIntegration
 from django.conf import settings
@@ -7,12 +10,13 @@ from django.http import HttpResponse, HttpRequest
 from django.shortcuts import redirect
 from django.template import Template, Context
 from django.urls import reverse
+from django.utils.http import urlencode
 
 USERS: list = []
 SESSION_DATA: dict = {}
 
 
-class AuthAdapter:
+class OpenAuthClient:
     def redirect_to_provider_auth_page(
         self, request: HttpRequest, redirect_uri: str
     ) -> HttpResponse:
@@ -22,7 +26,51 @@ class AuthAdapter:
         raise NotImplementedError()
 
 
-class GoogleOAuth2Adapter(AuthAdapter):
+class SteamOpenID(OpenAuthClient):
+    LOGIN_URL: Final[str] = "https://steamcommunity.com/openid/login"
+
+    def redirect_to_provider_auth_page(
+        self, request: HttpRequest, redirect_uri: str
+    ) -> HttpResponse:
+        query_params = {
+            "openid.ns": "http://specs.openid.net/auth/2.0",
+            "openid.mode": "checkid_setup",
+            "openid.return_to": redirect_uri,
+            "openid.realm": redirect_uri,
+            "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+            "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+        }
+
+        response = HttpResponse()
+        response["Location"] = f"{self.LOGIN_URL}?{urlencode(query_params)}"
+        response["Content-Type"] = "application/x-www-form-urlencoded"
+        response.status_code = http.HTTPStatus.FOUND
+        return response
+
+    def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
+        query_params: dict = request.GET.dict()
+        print(query_params)
+        self._query_params_is_valid(query_params)
+        return {"token": None, "user": query_params}
+
+    def _query_params_is_valid(self, query_params):
+        validation_query_params = {
+            "openid.assoc_handle": query_params["openid.assoc_handle"],
+            "openid.signed": query_params["openid.signed"],
+            "openid.sig": query_params["openid.sig"],
+            "openid.ns": query_params["openid.ns"],
+        }
+        signed_params = query_params["openid.signed"].split(",")
+        for param in signed_params:
+            open_id_param = f"openid.{param}"
+            if query_params[open_id_param] not in validation_query_params:
+                validation_query_params[open_id_param] = query_params[open_id_param]
+        validation_query_params["openid.mode"] = "check_authentication"
+        response = requests.post(self.LOGIN_URL, validation_query_params)
+        return 'is_valid:true' in response.text
+
+
+class GoogleOAuth2Adapter(OpenAuthClient):
     @staticmethod
     def create_client() -> DjangoRemoteApp:
         oauth.register(
@@ -48,7 +96,7 @@ class GoogleOAuth2Adapter(AuthAdapter):
         return {"token": token, "user": user}
 
 
-class TwitchOAuth2Adapter(AuthAdapter):
+class TwitchOAuth2Adapter(OpenAuthClient):
     @staticmethod
     def create_client() -> DjangoRemoteApp:
         oauth.register(
@@ -111,9 +159,10 @@ class OAuth(BaseOAuth):
 
 
 oauth = OAuth()
-google_client: AuthAdapter = GoogleOAuth2Adapter(oauth)
-twitch_client: AuthAdapter = TwitchOAuth2Adapter(oauth)
-client = twitch_client
+google_client: OpenAuthClient = GoogleOAuth2Adapter(oauth)
+twitch_client: OpenAuthClient = TwitchOAuth2Adapter(oauth)
+steam_client: OpenAuthClient = SteamOpenID()
+client = steam_client
 
 
 def home(request) -> HttpResponse:
