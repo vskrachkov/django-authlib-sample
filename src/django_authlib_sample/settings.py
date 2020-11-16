@@ -18,6 +18,13 @@ OAUTH2 = {
         "CLIENT_SECRET": env.str("OAUTH2_TWITCH_CLIENT_SECRET"),
         "SCOPE": "openid",
     },
+    "TEST": {
+        "AUTHORIZE_URL": env.str("OAUTH2_TEST_AUTHORIZE_URL"),
+        "TOKEN_URL": env.str("OAUTH2_TEST_TOKEN_URL"),
+        "CLIENT_ID": env.str("OAUTH2_TEST_CLIENT_ID"),
+        "CLIENT_SECRET": env.str("OAUTH2_TEST_CLIENT_SECRET"),
+        "SCOPE": "",
+    },
 }
 
 DEBUG = True

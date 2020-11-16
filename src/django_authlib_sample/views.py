@@ -26,6 +26,26 @@ class OpenAuthClient:
         raise NotImplementedError()
 
 
+class RegularOAuth2Adapter(OpenAuthClient):
+    def __init__(self, oauth: BaseOAuth) -> None:
+        oauth.register(
+            name="test",
+            authorize_url=settings.OAUTH2["TEST"]["AUTHORIZE_URL"],
+            token_endpoint=settings.OAUTH2["TEST"]["TOKEN_URL"],
+            client_id=settings.OAUTH2["TEST"]["CLIENT_ID"],
+            client_secret=settings.OAUTH2["TEST"]["CLIENT_SECRET"],
+            client_kwargs={"scope": settings.OAUTH2["TEST"]["SCOPE"]},
+        )
+        self.client: DjangoRemoteApp = oauth.create_client("test")
+
+    def redirect_to_provider_auth_page(self, request: HttpRequest, redirect_uri: str) -> HttpResponse:
+        return self.client.authorize_redirect(request, redirect_uri)
+
+    def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
+        token = self.client.authorize_access_token(request)
+        return {"token": token, "user": None}
+
+
 class SteamOpenID(OpenAuthClient):
     LOGIN_URL: Final[str] = "https://steamcommunity.com/openid/login"
 
@@ -67,12 +87,11 @@ class SteamOpenID(OpenAuthClient):
                 validation_query_params[open_id_param] = query_params[open_id_param]
         validation_query_params["openid.mode"] = "check_authentication"
         response = requests.post(self.LOGIN_URL, validation_query_params)
-        return 'is_valid:true' in response.text
+        return "is_valid:true" in response.text
 
 
 class GoogleOAuth2Adapter(OpenAuthClient):
-    @staticmethod
-    def create_client() -> DjangoRemoteApp:
+    def __init__(self, oauth: BaseOAuth) -> None:
         oauth.register(
             name="google",
             server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
@@ -80,10 +99,7 @@ class GoogleOAuth2Adapter(OpenAuthClient):
             client_secret=settings.OAUTH2["GOOGLE"]["CLIENT_SECRET"],
             client_kwargs={"scope": settings.OAUTH2["GOOGLE"]["SCOPE"]},
         )
-        return oauth.create_client("google")
-
-    def __init__(self, oauth_client: BaseOAuth) -> None:
-        self.client = self.create_client()
+        self.client: DjangoRemoteApp = oauth.create_client("google")
 
     def redirect_to_provider_auth_page(
         self, request: HttpRequest, redirect_uri: str
@@ -97,8 +113,7 @@ class GoogleOAuth2Adapter(OpenAuthClient):
 
 
 class TwitchOAuth2Adapter(OpenAuthClient):
-    @staticmethod
-    def create_client() -> DjangoRemoteApp:
+    def __init__(self, oauth: BaseOAuth) -> None:
         oauth.register(
             name="twitch",
             server_metadata_url="https://id.twitch.tv/oauth2/.well-known/openid-configuration",
@@ -106,10 +121,7 @@ class TwitchOAuth2Adapter(OpenAuthClient):
             client_secret=settings.OAUTH2["TWITCH"]["CLIENT_SECRET"],
             client_kwargs={"scope": settings.OAUTH2["TWITCH"]["SCOPE"]},
         )
-        return oauth.create_client("twitch")
-
-    def __init__(self, oauth_client: BaseOAuth) -> None:
-        self.client = self.create_client()
+        self.client: DjangoRemoteApp = oauth.create_client("twitch")
 
     def redirect_to_provider_auth_page(
         self, request: HttpRequest, redirect_uri: str
@@ -158,11 +170,12 @@ class OAuth(BaseOAuth):
     framework_client_cls = MyRemoteApp
 
 
-oauth = OAuth()
-google_client: OpenAuthClient = GoogleOAuth2Adapter(oauth)
-twitch_client: OpenAuthClient = TwitchOAuth2Adapter(oauth)
+oauth_ = OAuth()
+google_client: OpenAuthClient = GoogleOAuth2Adapter(oauth_)
+twitch_client: OpenAuthClient = TwitchOAuth2Adapter(oauth_)
+TEST_client: OpenAuthClient = RegularOAuth2Adapter(oauth_)
 steam_client: OpenAuthClient = SteamOpenID()
-client = steam_client
+client = TEST_client
 
 
 def home(request) -> HttpResponse:
