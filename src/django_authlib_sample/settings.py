@@ -19,6 +19,7 @@ OAUTH2 = {
         "SCOPE": "openid",
     },
     "TEST": {
+        "BASE_URL": env.str("OAUTH2_TEST_BASE_URL"),
         "AUTHORIZE_URL": env.str("OAUTH2_TEST_AUTHORIZE_URL"),
         "TOKEN_URL": env.str("OAUTH2_TEST_TOKEN_URL"),
         "CLIENT_ID": env.str("OAUTH2_TEST_CLIENT_ID"),

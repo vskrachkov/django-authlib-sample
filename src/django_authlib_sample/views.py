@@ -26,10 +26,11 @@ class OpenAuthClient:
         raise NotImplementedError()
 
 
-class RegularOAuth2Adapter(OpenAuthClient):
+class TESTOAuth2Adapter(OpenAuthClient):
     def __init__(self, oauth: BaseOAuth) -> None:
         oauth.register(
             name="test",
+            api_base_url=settings.OAUTH2["TEST"]["BASE_URL"],
             authorize_url=settings.OAUTH2["TEST"]["AUTHORIZE_URL"],
             token_endpoint=settings.OAUTH2["TEST"]["TOKEN_URL"],
             client_id=settings.OAUTH2["TEST"]["CLIENT_ID"],
@@ -38,12 +39,15 @@ class RegularOAuth2Adapter(OpenAuthClient):
         )
         self.client: DjangoRemoteApp = oauth.create_client("test")
 
-    def redirect_to_provider_auth_page(self, request: HttpRequest, redirect_uri: str) -> HttpResponse:
+    def redirect_to_provider_auth_page(
+        self, request: HttpRequest, redirect_uri: str
+    ) -> HttpResponse:
         return self.client.authorize_redirect(request, redirect_uri)
 
     def handle_redirect_from_provider(self, request: HttpRequest) -> dict:
         token = self.client.authorize_access_token(request)
-        return {"token": token, "user": None}
+        user = self.client.get(f"{self.client.api_base_url}/users/me/", token=token).json()
+        return {"token": token, "user": user}
 
 
 class SteamOpenID(OpenAuthClient):
@@ -173,7 +177,7 @@ class OAuth(BaseOAuth):
 oauth_ = OAuth()
 google_client: OpenAuthClient = GoogleOAuth2Adapter(oauth_)
 twitch_client: OpenAuthClient = TwitchOAuth2Adapter(oauth_)
-TEST_client: OpenAuthClient = RegularOAuth2Adapter(oauth_)
+TEST_client: OpenAuthClient = TESTOAuth2Adapter(oauth_)
 steam_client: OpenAuthClient = SteamOpenID()
 client = TEST_client
 
