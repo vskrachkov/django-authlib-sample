@@ -1,0 +1,1 @@
+default_app_config = "authentication_clients.my_oauth2_provider.apps.MyOauth2ProviderConfig"

@@ -32,12 +32,22 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-INSTALLED_APPS = [
+CORE_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
 ]
+
+PROJECT_APPS = [
+    "authentication_clients",
+    "authentication_clients.google",
+    "authentication_clients.twitch",
+    "authentication_clients.steam",
+    "authentication_clients.my_oauth2_provider",
+]
+
+INSTALLED_APPS = CORE_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
