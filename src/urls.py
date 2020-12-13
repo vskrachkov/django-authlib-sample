@@ -1,16 +1,18 @@
 from django.urls import path
 
+import views
 from authentication_clients.client import Client
 from authentication_clients.google.client import GoogleOAuth2Client
 from authentication_clients.my_oauth2_provider.client import MyOAuth2ProviderClient
+from authentication_clients.my_oidc_provider.client import MyOpenIdOAuth2Client
 from authentication_clients.oauth2 import get_oauth2
 from authentication_clients.steam.client import SteamOpenIDClient
 from authentication_clients.twitch.client import TwitchOAuth2Client
 from authentication_clients.views import create_login_view, create_callback_view
-import views
 
 _oauth2 = get_oauth2()
 _google_client: Client = GoogleOAuth2Client(_oauth2)
+_my_openid_client: Client = MyOpenIdOAuth2Client(_oauth2)
 _my_provider_client: Client = MyOAuth2ProviderClient(_oauth2)
 _steam_client: Client = SteamOpenIDClient()
 _twitch_client: Client = TwitchOAuth2Client(_oauth2)
@@ -24,6 +26,14 @@ urlpatterns = [
     ),
     path(
         "google_callback/", create_callback_view(_google_client), name="google_callback"
+    ),
+    path(
+        "login_my_openid/",
+        create_login_view(_my_openid_client, "my_openid_callback"),
+        name="my_openid_login",
+    ),
+    path(
+        "my_openid_callback/", create_callback_view(_my_openid_client), name="my_openid_callback"
     ),
     path(
         "login_my_provider/",

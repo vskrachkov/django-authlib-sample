@@ -11,7 +11,12 @@ OAUTH2 = {
     "GOOGLE": {
         "CLIENT_ID": env.str("OAUTH2_GOOGLE_CLIENT_ID"),
         "CLIENT_SECRET": env.str("OAUTH2_GOOGLE_CLIENT_SECRET"),
-        "SCOPE": "email",
+        "SCOPE": "openid email",
+    },
+    "MY_OPENID": {
+        "CLIENT_ID": env.str("OAUTH2_MY_OPENID_CLIENT_ID"),
+        "CLIENT_SECRET": env.str("OAUTH2_MY_OPENID_CLIENT_SECRET"),
+        "SCOPE": "openid email",
     },
     "TWITCH": {
         "CLIENT_ID": env.str("OAUTH2_TWITCH_CLIENT_ID"),
@@ -45,6 +50,7 @@ PROJECT_APPS = [
     "authentication_clients.twitch",
     "authentication_clients.steam",
     "authentication_clients.my_oauth2_provider",
+    "authentication_clients.my_oidc_provider",
 ]
 
 INSTALLED_APPS = CORE_APPS + PROJECT_APPS

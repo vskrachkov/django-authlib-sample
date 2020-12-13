@@ -18,6 +18,7 @@ def home(request) -> HttpResponse:
         "my_provider": reverse("my_provider_login"),
         "steam": reverse("steam_login"),
         "twitch": reverse("twitch_login"),
+        "my_openid": reverse("my_openid_login"),
     }
 
     credentials = pformat(CREDENTIALS, indent=4) if CREDENTIALS else None
