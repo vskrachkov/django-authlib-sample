@@ -16,7 +16,7 @@ OAUTH2 = {
     "MY_OPENID": {
         "CLIENT_ID": env.str("OAUTH2_MY_OPENID_CLIENT_ID"),
         "CLIENT_SECRET": env.str("OAUTH2_MY_OPENID_CLIENT_SECRET"),
-        "SCOPE": "openid email",
+        "SCOPE": "openid email steam_id",
     },
     "TWITCH": {
         "CLIENT_ID": env.str("OAUTH2_TWITCH_CLIENT_ID"),
