@@ -7,7 +7,7 @@ from authentication_clients.oauth2 import get_oauth2
 from authentication_clients.steam.client import SteamOpenIDClient
 from authentication_clients.twitch.client import TwitchOAuth2Client
 from authentication_clients.views import create_login_view, create_callback_view
-from . import views
+import views
 
 _oauth2 = get_oauth2()
 _google_client: Client = GoogleOAuth2Client(_oauth2)
